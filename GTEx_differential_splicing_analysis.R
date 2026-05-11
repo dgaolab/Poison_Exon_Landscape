@@ -1,18 +1,3 @@
-###############################################################################
-# GTEx differential splicing analysis for poison exons
-#
-# Inputs:
-#   - gtex_dir : directory containing
-#       * poison_exon_spliceIDcounts_perTissue/  (per-tissue numerator/denominator
-#         count tables, named <tissue>.poison_exon.numerator.out.tab.gz and
-#         <tissue>.poison_exon.denominator.out.tab.gz)
-#       * GTEx_v8_RNASeq_meta.txt                (sample metadata with SMTSD column)
-#   - pe_ref  : filtered poison-exon reference table
-#                 (spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt)
-#   - GTEx_dsp.R : helper script defining test_one_pair() and find_tissue_uniq()
-#
-###############################################################################
-
 library(ggplot2)
 library(combinat)
 library(data.table)
