@@ -11,7 +11,6 @@
 #                 (spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt)
 #   - GTEx_dsp.R : helper script defining test_one_pair() and find_tissue_uniq()
 #
-# Outputs are written under outdir (default: ./4_output_GTEx).
 ###############################################################################
 
 library(ggplot2)
