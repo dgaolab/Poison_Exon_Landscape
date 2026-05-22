@@ -5,10 +5,11 @@
 # ---- 0. Configuration (edit here only) ----------------------
 CONFIG <- list(
   # Paths — edit these to point at your local copies
-  path_bs    = "path/to/brainspan_poison_exon_output",
-  pe_ref     = "spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt",
-  output_dir = "./3_output_brainSpan",
-  csv_dir    = "./3_output_brainSpan/2_brain_span_files",
+  path_bs = "./example_data/brainspan",
+  pe_ref  = "./data/spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt",
+
+  output_dir = "./output_brainSpan",
+  csv_dir    = "./output_brainSpan/brain_span_files",
 
   # Sample filters
   min_region_n    = 30, # keep brain regions with > this many samples total
@@ -26,15 +27,21 @@ CONFIG <- list(
 )
 
 # ---- 1. Libraries -------------------------------------------
-library(tidyverse)
-library(data.table)
-library(R.utils)
-library(mgcv)
-library(matrixStats)
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(data.table)
+  library(R.utils)
+  library(mgcv)
+  library(matrixStats)
+})
 
 # ---- 2. Load & filter metadata ------------------------------
+# Reproduces the age-group + region filters. The shipped
+# example_data/brainspan/brain_span_metadata.tsv is already pre-filtered,
+# so these filters are no-ops on the example; they apply when run on the
+# full BrainSpan meta.
 load_metadata <- function(path_bs, min_region_n, min_age_group_n) {
-  meta <- read.table(file.path(path_bs, "meta.tsv"),
+  meta <- read.table(file.path(path_bs, "brain_span_metadata.tsv"),
                      header = TRUE, sep = "\t", check.names = FALSE)
 
   # Filter 1: remove age groups that have only 1 sample in more than min_age_group_n tissues
@@ -47,10 +54,6 @@ load_metadata <- function(path_bs, min_region_n, min_age_group_n) {
 
   for (i in seq_len(nrow(age_tissue_counts))) {
     status <- if (age_tissue_counts$kept[i]) "KEEP" else "EXCLUDE"
-    message(sprintf("  %-45s  singleton_tissues = %d  [%s]",
-                    age_tissue_counts$age_group[i],
-                    age_tissue_counts$n_sparse_tissues[i],
-                    status))
   }
 
   keep_ages <- age_tissue_counts$age_group[age_tissue_counts$kept]
@@ -74,7 +77,7 @@ load_metadata <- function(path_bs, min_region_n, min_age_group_n) {
 
 # ---- 3. Load PSI count matrices -----------------------------
 load_psi_counts <- function(path_bs, keep_samples) {
-  files_path <- file.path(path_bs, "poison_exon_spliceIDcounts_perTissue")
+  files_path <- path_bs
   files      <- list.files(files_path, full.names = TRUE)
 
   read_and_bind <- function(pattern) {
@@ -120,12 +123,6 @@ get_gam <- function(x, PSI_tissue, tissue_meta, gam_k = 9,
   )
   if (is.null(fit)) return(NULL)
 
-  # Model with sex and ancestry as parametric covariates (for GCV comparison only)
-  fit_cov <- tryCatch(
-    gam(PSI ~ s(age_group_int, k = gam_k) + gender + ethn, data = df),
-    error = function(e) NULL
-  )
-
   s <- summary(fit)
   fitted_vals           <- t(as.data.frame(fitted(fit)))
   rownames(fitted_vals) <- PE_name
@@ -137,8 +134,7 @@ get_gam <- function(x, PSI_tissue, tissue_meta, gam_k = 9,
                          s_pv         = s$s.pv,
                          dev_expl     = s$dev.expl,
                          r_sq         = s$r.sq,
-                         GCV_base     = fit$gcv.ubre.dev,
-                         GCV_cov      = if (!is.null(fit_cov)) fit_cov$gcv.ubre.dev else NA_real_),
+                         GCV_base     = fit$gcv.ubre.dev),
     fitValues = fitted_vals
   )
 }
@@ -148,7 +144,7 @@ run_region <- function(region, metadata, PSI_n, PSI_R3, cfg) {
 
   tmeta <- metadata %>%
     filter(brain_region == region) %>%
-    select(`entity:sample_id`, age_group, brain_region, gender, ethn) %>%
+    select(`entity:sample_id`, age_group, brain_region) %>%
     mutate(age_group_int = as.integer(factor(age_group, levels = sort(unique(age_group))))) %>%
     arrange(age_group_int)
 
@@ -176,7 +172,6 @@ run_region <- function(region, metadata, PSI_n, PSI_R3, cfg) {
   # Filter 2: low variance
   rv  <- rowVars(as.matrix(psi), na.rm = TRUE)
   psi <- psi[!is.na(rv) & rv >= cfg$var_cutoff, ]
-  message("  Features after filtering: ", nrow(psi))
 
   psi <- psi[, sids]  # ensure sample order matches metadata
   stopifnot(all(colnames(psi) == sids))
@@ -198,8 +193,6 @@ run_region <- function(region, metadata, PSI_n, PSI_R3, cfg) {
             paste0("PE_gam_results_",       region, ".csv")), row.names = FALSE)
   write.csv(fit_df, file.path(cfg$csv_dir,
             paste0("PE_gam_fitted_values_", region, ".csv")), row.names = TRUE)
-
-  invisible(list(summary = rdf, fitted = fit_df))
 }
 
 # ---- 7. Main ------------------------------------------------
@@ -207,10 +200,20 @@ dir.create(CONFIG$output_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(CONFIG$csv_dir,    showWarnings = FALSE, recursive = TRUE)
 
 bs_meta_f     <- load_metadata(CONFIG$path_bs, CONFIG$min_region_n, CONFIG$min_age_group_n)
-save(bs_meta_f, file = file.path(CONFIG$output_dir, "bs_meta_f.RData"))
+
+# Restrict bs_meta_f to samples whose count files are actually present in path_bs.
+sniff_header <- function(f) {
+  con <- gzfile(f, "rt"); on.exit(close(con))
+  strsplit(readLines(con, n = 1), "\t")[[1]]
+}
+available_samples <- unique(unlist(lapply(
+  list.files(CONFIG$path_bs, pattern = "\\.spliceID\\..*\\.txt\\.gz$", full.names = TRUE),
+  sniff_header
+)))
+bs_meta_f <- bs_meta_f %>% filter(`entity:sample_id` %in% available_samples)
+
 counts        <- load_psi_counts(CONFIG$path_bs, bs_meta_f$`entity:sample_id`)
 
-# Restrict to reference PE list
 pe_ref <- read.table(CONFIG$pe_ref, header = TRUE, sep = "\t", check.names = FALSE)
 pe_ids <- pe_ref$spliceID
 counts$numerator   <- counts$numerator[rownames(counts$numerator)   %in% pe_ids, ]

@@ -1,2 +1,78 @@
-# Poison_Exon_Landscape
-Open-source scripts for the Poison Exon Project
+# Poison Exon Landscape
+
+This repository contains the analysis pipeline used to identify poison exons
+(PEs) from Gencode v26 annotation GTF file in human and characterize their tissue-specific
+splicing patterns in GTEx and developmental trajectories in BrainSpan.
+
+## What's here
+
+| File | What it does |
+|---|---|
+| `identify_pe.py` | Calls poison exons from Gencode v26 annotation GTF file. |
+| `GTEx_differential_splicing_analysis.R` | Tissue-vs-tissue differential PSI analysis across GTEx v8. |
+| `GTEx_dsp.R` | Helper functions sourced by the GTEx script. |
+| `auto_deSV.R` | Generalized DE model fitting (GLM / LMM / NB / Gaussian). |
+| `brainspan_trajectory_analysis.R` | GAM trajectories of PE splicing across BrainSpan development. |
+| `data/` | PE list in human. |
+| `example_data/` | Example dataset from GTEx and BrainSpan. |
+| `example_output/` | Expected outputs from running the scripts on `example_data/`. |
+
+
+## Requirements
+
+### R (≥ 4.2 recommended)
+
+### Python (for `identify_pe.py`)
+
+See top of the script for the package list. Tested with Python 3.9+.
+
+## Full-scale reproduction
+
+The bundled `example_data/` is intentionally small (~3 tissues / 3 brain regions)
+so the smoke test runs in minutes. To reproduce the manuscript-scale results:
+
+1. Download the full processed count matrices and metadata from GTEx and BrainSpan.
+2. Place them under your own directory.
+3. Edit the `CONFIG` block at the top of each script to point at your data:
+   - GTEx script: `gtex_dir`, `pe_ref`
+   - BrainSpan script: `path_bs`, `pe_ref`
+4. Rerun the scripts.
+
+Raw GTEx v8 RNA-seq data is hosted on the GTEx Portal
+(<https://gtexportal.org>). BrainSpan data is hosted at
+<https://www.brainspan.org>. Access terms apply to each.
+
+## Input file formats
+
+### GTEx (under `gtex_dir`)
+- `<Tissue>.poison_exon.numerator.out.tab.gz` — PE inclusion counts, samples × PEs.
+- `<Tissue>.poison_exon.denominator.out.tab.gz` — PE exclusion counts.
+- `GTEx_v8_RNASeq_meta.txt` — sample metadata.
+
+### BrainSpan (under `path_bs`)
+- `<Region>.spliceID.Numerator.txt.gz` — inclusion counts.
+- `<Region>.spliceID.R3.txt.gz` — exclusion counts.
+- `brain_span_metadata.tsv` — sample metadata 
+
+### PE reference
+- `data/spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt` —
+  curated PE list in human (GENCODE v26 / GRCh38).
+
+## Outputs
+
+### GTEx
+Under `output_GTEx/`:
+- `differential_splicing_test/model_params_{beta,stderr,fdr,pval}_glm_tissue_<TisB>_VS_<TisA>.txt`
+  — per-pair GLM model output.
+- `RData/{df_beta,df_base,df_target,df_fdr,delta_psi_brain}.rds`
+  — aggregated matrices across all tissue pairs.
+
+### BrainSpan
+Under `output_brainSpan/brain_span_files/`:
+- `PE_gam_results_<Region>.csv` — per-PE GAM summary
+  (p-value, effective degrees of freedom, deviance explained, FDR).
+- `PE_gam_fitted_values_<Region>.csv` — fitted PSI trajectories.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

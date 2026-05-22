@@ -1,24 +1,21 @@
-library(ggplot2)
-library(combinat)
-library(data.table)
-library(gplots)
-library(hues)
-library(matrixStats)
-library(rwantshue)
-library(dplyr)
-library(tibble)
+suppressPackageStartupMessages({
+  library(combinat)
+  library(data.table)
+  library(matrixStats)
+  library(dplyr)
+  library(tibble)
+})
 
 source("./GTEx_dsp.R")
 
 # ---- CONFIG -----------------------------------------------------------------
-gtex_dir <- "path/to/gtex_poison_exon_output"  
-pe_ref   <- "spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt"
-outdir   <- "./4_output_GTEx"
+gtex_dir <- "./example_data/gtex"
+pe_ref   <- "./data/spliceIDs_ref.poison_exon.no_ir.GRCh38.GencodeV26.filtered.txt"
+outdir <- "./output_GTEx"
 # -----------------------------------------------------------------------------
 
 dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 dir.create(file.path(outdir, "RData"), showWarnings = FALSE)
-dir.create(file.path(outdir, "pdf"),   showWarnings = FALSE)
 
 dd  <- read.table(pe_ref, header = TRUE, sep = "\t", check.names = FALSE)
 pe  <- as.vector(dd$spliceID)
@@ -26,8 +23,8 @@ dd1 <- dd
 rownames(dd1) <- as.vector(dd$spliceID)
 dd1 <- dd1[, -1]
 
-folder <- file.path(gtex_dir, "poison_exon_spliceIDcounts_perTissue/")
-fl <- list.files(folder)
+folder <- paste0(gtex_dir, "/")
+fl <- list.files(folder, pattern = "\\.poison_exon\\.")
 tl <- unique(sapply(strsplit(fl, "\\."), "[[", 1))
 
 ps <- t(combn(tl, 2))
@@ -138,32 +135,4 @@ colnames(tmp) <- brain_first_coln_inv
 delta_psi_brain <- cbind(tmp, delta_psi_brain[, -brain_first])
 delta_psi_brain <- delta_psi_brain[, sort(colnames(delta_psi_brain))]
 
-coln <- sapply(strsplit(colnames(delta_psi_brain), "_"), "[[", 1)
-coln[which(coln == "Minor")] <- "Salivary_Gland"
-coln[which(coln == "Small")] <- "Intestine"
-coln[which(coln == "Whole")] <- "Blood"
-non_brain_tis <- unique(coln)
-
-scheme   <- iwanthue(seed = 122, force_init = TRUE)
-myColors <- scheme$hex(length(non_brain_tis))
-names(myColors) <- non_brain_tis
-color_vec <- myColors[coln]
-
-pdf(file.path(outdir, "pdf/test_Brain_GTEx_poison_exon_spliceID_heatmap.pdf"))
-heatmap.2(delta_psi_brain, Colv = FALSE, dendrogram = "row",
-          scale = "none", col = "bluered", trace = "none",
-          ColSideColors = color_vec, density.info = "none",
-          labRow = FALSE, labCol = FALSE)
-dev.off()
-
-
-##################################################################################
-# brain-unique PEs
-brain_uniq <- find_tissue_uniq(tl, pe, "Brain", folder = folder)
-brain_diff <- rownames(delta_psi_brain)
-
-brain_poison  <- rbind(data.frame(ID = brain_uniq, Class = "brain_uniq"),
-                       data.frame(ID = brain_diff, Class = "brain_diff"))
-brain_poison1 <- dd1[as.vector(brain_poison$ID), ]
-brain_poison1$Tissue <- brain_poison$Class
-
+saveRDS(delta_psi_brain, file = file.path(outdir, "RData/delta_psi_brain.rds"))

@@ -8,7 +8,9 @@
 #   - auto_deSV.R  (provides buildDEmodel(); must be in the working directory)
 ###############################################################################
 
-library(matrixStats)
+suppressPackageStartupMessages({
+  library(matrixStats)
+})
 source("./auto_deSV.R")
 
 
