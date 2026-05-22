@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
   library(tibble)
 })
 
-source("./GTEx_dsp.R")
+source("scripts/GTEx_dsp.R")
 
 # ---- CONFIG -----------------------------------------------------------------
 gtex_dir <- "./example_data/gtex"

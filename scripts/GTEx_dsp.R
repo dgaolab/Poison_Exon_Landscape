@@ -11,7 +11,7 @@
 suppressPackageStartupMessages({
   library(matrixStats)
 })
-source("./auto_deSV.R")
+source("scripts/auto_deSV.R")
 
 
 # Run a tissue-vs-tissue differential PSI test for one pair of tissues.

@@ -8,15 +8,26 @@ splicing patterns in GTEx and developmental trajectories in BrainSpan.
 
 | File | What it does |
 |---|---|
-| `identify_pe.py` | Calls poison exons from Gencode v26 annotation GTF file. |
-| `GTEx_differential_splicing_analysis.R` | Tissue-vs-tissue differential PSI analysis across GTEx v8. |
-| `GTEx_dsp.R` | Helper functions sourced by the GTEx script. |
-| `auto_deSV.R` | Generalized DE model fitting (GLM / LMM / NB / Gaussian). |
-| `brainspan_trajectory_analysis.R` | GAM trajectories of PE splicing across BrainSpan development. |
+| `scripts/identify_pe.py` | Calls poison exons from Gencode v26 annotation GTF file. |
+| `scripts/GTEx_differential_splicing_analysis.R` | Tissue-vs-tissue differential PSI analysis across GTEx v8. |
+| `scripts/GTEx_dsp.R` | Helper functions sourced by the GTEx script. |
+| `scripts/auto_deSV.R` | Generalized DE model fitting (GLM / LMM / NB / Gaussian). |
+| `scripts/brainspan_trajectory_analysis.R` | GAM trajectories of PE splicing across BrainSpan development. |
 | `data/` | PE list in human. |
 | `example_data/` | Example dataset from GTEx and BrainSpan. |
 | `example_output/` | Expected outputs from running the scripts on `example_data/`. |
 
+## Quickstart
+
+Run the scripts **from the repository root**:
+
+```bash
+Rscript scripts/GTEx_differential_splicing_analysis.R
+Rscript scripts/brainspan_trajectory_analysis.R
+```
+
+Outputs appear under `output_GTEx/` and `output_brainSpan/` (gitignored).
+Compare to the reference files in `example_output/` to verify your installation.
 
 ## Requirements
 
