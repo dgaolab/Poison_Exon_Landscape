@@ -10,7 +10,7 @@ The full list of our identified human poison exons can be found [here](https://g
 - **Alt3** = alternative **3' end of the exon**, which corresponds to an alternative **5' splice site** (5' ss).
     
 ## Citation
-Please cite [our paper](https://link.springer.com/article/10.1186/s13059-026-04292-8) in *Genome Biology*:
+Please cite [our paper](https://link.springer.com/article/10.1186/s13059-026-04292-8) in *Genome Biology*:    
 Pigini, Xu et al. *Poison exon splicing in the human brain provides a new paradigm for understanding and targeting neurological disorders*, Genome Biology, Oct 14 2026.
     
 ## What's here
